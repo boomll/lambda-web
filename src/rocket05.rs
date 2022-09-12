@@ -245,6 +245,7 @@ async fn api_gateway_response_from_rocket(
     // check if response should be compressed
     let compress = client_support_br && response.can_brotli_compress();
     let body_bytes = response.into_bytes().await.unwrap_or_default();
+    let mut isBase64 = true;
     let body_base64 = if compress {
         if multi_value {
             headers.insert("content-encoding".to_string(), json!(["br"]));
@@ -253,19 +254,20 @@ async fn api_gateway_response_from_rocket(
         }
         crate::brotli::compress_response_body(&body_bytes)
     } else {
-        base64::encode(body_bytes)
+        isBase64 = false;
+        response.into_string()
     };
 
     if multi_value {
         Ok(json!({
-            "isBase64Encoded": true,
+            "isBase64Encoded": isBase64,
             "statusCode": status_code,
             "multiValueHeaders": headers,
             "body": body_base64
         }))
     } else {
         Ok(json!({
-            "isBase64Encoded": true,
+            "isBase64Encoded": isBase64,
             "statusCode": status_code,
             "cookies": cookies,
             "headers": headers,
