@@ -255,7 +255,7 @@ async fn api_gateway_response_from_rocket(
         crate::brotli::compress_response_body(&body_bytes)
     } else {
         isBase64 = false;
-        response.into_string()
+        response.into_string().await.unwrap_or_default()
     };
 
     if multi_value {
