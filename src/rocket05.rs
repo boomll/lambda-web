@@ -258,6 +258,8 @@ async fn api_gateway_response_from_rocket(
         response.into_string().await.unwrap_or_default()
     };
 
+    println!("{} {} {}", compress, isBase64, multi_value);
+
     if multi_value {
         Ok(json!({
             "isBase64Encoded": isBase64,
