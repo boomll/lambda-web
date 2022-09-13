@@ -211,6 +211,7 @@ async fn api_gateway_response_from_rocket(
     client_support_br: bool,
     multi_value: bool,
 ) -> Result<serde_json::Value, rocket::Error> {
+    println!("api_gateway_response_from_rocket");
     use crate::brotli::ResponseCompression;
     use serde_json::json;
 
@@ -223,6 +224,7 @@ async fn api_gateway_response_from_rocket(
     for header in response.headers().iter() {
         let header_name = header.name.into_string();
         let header_value = header.value.into_owned();
+        println!("header {} {}", header_name, header_value);
         if multi_value {
             // REST API format, returns multiValueHeaders
             if let Some(values) = headers.get_mut(&header_name) {
