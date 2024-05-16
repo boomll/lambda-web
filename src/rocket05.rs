@@ -211,6 +211,7 @@ async fn api_gateway_response_from_rocket(
     client_support_br: bool,
     multi_value: bool,
 ) -> Result<serde_json::Value, rocket::Error> {
+    println!("api_gateway_response_from_rocket");
     use crate::brotli::ResponseCompression;
     use serde_json::json;
 
@@ -223,6 +224,7 @@ async fn api_gateway_response_from_rocket(
     for header in response.headers().iter() {
         let header_name = header.name.into_string();
         let header_value = header.value.into_owned();
+        println!("header {} {}", header_name, header_value);
         if multi_value {
             // REST API format, returns multiValueHeaders
             if let Some(values) = headers.get_mut(&header_name) {
@@ -244,28 +246,32 @@ async fn api_gateway_response_from_rocket(
 
     // check if response should be compressed
     let compress = client_support_br && response.can_brotli_compress();
-    let body_bytes = response.into_bytes().await.unwrap_or_default();
+    let mut isBase64 = true;
     let body_base64 = if compress {
         if multi_value {
             headers.insert("content-encoding".to_string(), json!(["br"]));
         } else {
             headers.insert("content-encoding".to_string(), json!("br"));
         }
+        let body_bytes = response.into_bytes().await.unwrap_or_default();
         crate::brotli::compress_response_body(&body_bytes)
     } else {
-        base64::encode(body_bytes)
+        isBase64 = false;
+        response.into_string().await.unwrap_or_default()
     };
+
+    println!("{} {} {}", compress, isBase64, multi_value);
 
     if multi_value {
         Ok(json!({
-            "isBase64Encoded": true,
+            "isBase64Encoded": isBase64,
             "statusCode": status_code,
             "multiValueHeaders": headers,
             "body": body_base64
         }))
     } else {
         Ok(json!({
-            "isBase64Encoded": true,
+            "isBase64Encoded": isBase64,
             "statusCode": status_code,
             "cookies": cookies,
             "headers": headers,
